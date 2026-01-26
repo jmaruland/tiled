@@ -674,7 +674,9 @@ def test_deletion_access_control(access_control_test_context_factory):
 
 async def coro_test(c, keys):
     asyncio.sleep(0.5)
-    dy = await c.context.http_client.app.state.root_tree[keys[0]].lookup_adapter([keys[1]])
+    dy = await c.context.http_client.app.state.root_tree[keys[0]].lookup_adapter(
+        [keys[1]]
+    )
     return dy
 
 
@@ -690,7 +692,12 @@ def test_created_and_updated_info(access_control_test_context_factory):
     top = "foo"
     for data in ["data_M"]:
         # Create a new node and check created_by and updated_by
-        alice_client[top].write_array(arr, key=data, metadata={"description": "initial"}, access_tags=["alice_tag"])
+        alice_client[top].write_array(
+            arr,
+            key=data,
+            metadata={"description": "initial"},
+            access_tags=["alice_tag"],
+        )
         coro_obj = coro_test(alice_client, [top, data])
         result = asyncio.run(coro_obj)
         assert result.node.created_by == "alice"
@@ -698,7 +705,9 @@ def test_created_and_updated_info(access_control_test_context_factory):
         assert result.node.time_created.date() == result.node.time_updated.date()
 
         time.sleep(1)  # ensure time_updated is different
-        alice_client[top][data].replace_metadata(metadata={"description": "updated"}) # Still need to test this works with another user
+        alice_client[top][data].replace_metadata(
+            metadata={"description": "updated"}
+        )  # Still need to test this works with another user
         coro_obj = coro_test(alice_client, [top, data])
         result = asyncio.run(coro_obj)
         assert result.node.created_by != result.node.updated_by
