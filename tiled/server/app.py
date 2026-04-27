@@ -64,7 +64,7 @@ from .protocols import ExternalAuthenticator, InternalAuthenticator
 from .router import get_metrics_router, get_router
 from .settings import Settings, get_settings
 from .utils import API_KEY_COOKIE_NAME, CSRF_COOKIE_NAME, get_root_url, record_timing
-from .webhook_router import get_webhook_router
+from .webhook_router import UrlValidator, get_webhook_router
 from .zarr import get_zarr_router_v2, get_zarr_router_v3
 
 SAFE_METHODS = {"GET", "HEAD", "OPTIONS", "TRACE"}
@@ -128,7 +128,7 @@ def build_app(
     scalable=False,
     access_policy: Optional[AccessPolicy] = None,
     include_routers: Optional[list[APIRouter]] = None,
-    webhook_url_validator=None,
+    webhook_url_validator: Optional[UrlValidator] = None,
 ):
     """
     Serve a Tree
@@ -145,9 +145,10 @@ def build_app(
     webhook_url_validator : callable, optional
         An async callable ``(WebhookRegistrationRequest) -> None`` invoked when
         a webhook is registered.  Raise ``HTTPException`` to reject the request.
-        Defaults to ``_default_url_validator`` (enforces HTTPS and blocks SSRF
-        targets).  Pass ``_noop_url_validator`` to allow plain HTTP and local
-        addresses, e.g. for ``SimpleTiledServer`` used in tests or tutorials.
+        When ``None`` (default), a validator is built from ``WebhooksConfig``
+        (enforces HTTPS and blocks SSRF targets unless ``allow_http`` or
+        ``allow_private_addresses`` are set).  Pass ``_noop_url_validator`` to
+        skip all checks, e.g. for ``SimpleTiledServer``.
     """
     authentication = authentication or Authentication()
     authenticators = authentication.authenticators
