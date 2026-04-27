@@ -442,6 +442,7 @@ c['x'].write_array([4,5,6], key='b')
 c['x']
 ```
 
+(stream)=
 ## Stream
 
 So far we've been pulling data from Tiled on demand. Streaming flips this
