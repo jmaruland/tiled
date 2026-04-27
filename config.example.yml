@@ -127,6 +127,38 @@
 
 
 # -----------------------------------------------------------------------------
+# Webhooks  [EXPERIMENTAL]
+# -----------------------------------------------------------------------------
+# Push notifications to external HTTPS endpoints when catalog events occur
+# (e.g. a new entry is created, a stream is closed).  When this section is
+# absent, the webhooks feature is fully disabled.
+#
+# Once enabled, webhooks are registered per-node via the REST API:
+#   POST   /api/v1/webhooks/target/{path}        – register
+#   GET    /api/v1/webhooks/target/{path}        – list
+#   DELETE /api/v1/webhooks/{webhook_id}         – delete
+#   GET    /api/v1/webhooks/history/{webhook_id} – delivery history
+#
+# webhooks:
+#   # Keys used to encrypt webhook HMAC signing secrets at rest.
+#   # Required only if users will register webhooks with a signing secret.
+#   # Generate a key:  openssl rand -hex 32
+#   # Supports key rotation: first key encrypts, all keys are tried to decrypt.
+#   secret_keys:
+#     - ${TILED_WEBHOOK_SECRET_KEY}
+#
+#   # Allow webhook URLs to use plain HTTP instead of HTTPS.
+#   # Default: false.  Enable for containerized / local development setups.
+#   # Env: TILED_WEBHOOKS_ALLOW_HTTP
+#   # allow_http: false
+#
+#   # Allow webhook URLs that target private, loopback, or reserved addresses.
+#   # Default: false.  Enable when webhook receivers run on the same network.
+#   # Env: TILED_WEBHOOKS_ALLOW_PRIVATE_ADDRESSES
+#   # allow_private_addresses: false
+
+
+# -----------------------------------------------------------------------------
 # Authentication
 # -----------------------------------------------------------------------------
 authentication:
