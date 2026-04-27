@@ -660,7 +660,7 @@ class WebhookRegistrationRequest(pydantic.BaseModel):
     def check_https(self) -> None:
         """Raise ValueError if the URL scheme is not HTTPS.
 
-        Not a field validator so callers (e.g. dev_mode) can bypass it.
+        Not a field validator so callers (e.g. _noop_url_validator) can bypass it.
         """
         if self.url.scheme != "https":
             raise ValueError(
