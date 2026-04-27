@@ -18,7 +18,7 @@ Webhooks are an **experimental feature**. The API and configuration format may
 change in future releases.
 ```
 
-While Tiled's [streaming subscriptions](10-minutes-to-tiled.md#stream) push
+While Tiled's {ref}`streaming subscriptions <stream>` push
 data to a Python client over a WebSocket, **webhooks** push to any external
 HTTP service — no persistent connection required.  Whenever a catalog event
 fires (new entry created, metadata updated, stream closed), Tiled sends an
