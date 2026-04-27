@@ -128,6 +128,7 @@ def build_app(
     scalable=False,
     access_policy: Optional[AccessPolicy] = None,
     include_routers: Optional[list[APIRouter]] = None,
+    url_validator=None,
 ):
     """
     Serve a Tree
@@ -395,7 +396,12 @@ def build_app(
     app.include_router(router, prefix="/api/v1")
     webhooks_cfg = server_settings.get("webhooks")
     if webhooks_cfg is not None:
-        app.include_router(get_webhook_router(webhooks_cfg), prefix="/api/v1")
+        kwargs = {}
+        if url_validator is not None:
+            kwargs["url_validator"] = url_validator
+        app.include_router(
+            get_webhook_router(webhooks_cfg, **kwargs), prefix="/api/v1"
+        )
 
     app.include_router(get_zarr_router_v2(), prefix="/zarr/v2")
     app.include_router(get_zarr_router_v3(), prefix="/zarr/v3")
