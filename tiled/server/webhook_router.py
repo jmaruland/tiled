@@ -106,7 +106,7 @@ async def _node_path_from_id(ctx, node_id: int) -> str:
 
 def get_webhook_router(
     webhook_settings: WebhooksConfig,
-    url_validator: UrlValidator = _default_url_validator,
+    webhook_url_validator: UrlValidator = _default_url_validator,
 ) -> APIRouter:
     router = APIRouter(prefix="/webhooks")
 
@@ -140,7 +140,7 @@ def get_webhook_router(
         )
         ctx = _get_catalog_context(entry)
 
-        await url_validator(body)
+        await webhook_url_validator(body)
 
         encrypted_secret: Optional[str] = None
         if body.secret:

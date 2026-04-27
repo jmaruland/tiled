@@ -163,7 +163,7 @@ class SimpleTiledServer:
             self.catalog,
             authentication=Authentication(single_user_api_key=api_key),
             server_settings=server_settings,
-            url_validator=_noop_url_validator if enable_webhooks else None,
+            webhook_url_validator=_noop_url_validator if enable_webhooks else None,
         )
         self._server = ThreadedServer(
             uvicorn.Config(self.app, port=port, loop="asyncio", log_config=log_config)

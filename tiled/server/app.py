@@ -128,7 +128,7 @@ def build_app(
     scalable=False,
     access_policy: Optional[AccessPolicy] = None,
     include_routers: Optional[list[APIRouter]] = None,
-    url_validator=None,
+    webhook_url_validator=None,
 ):
     """
     Serve a Tree
@@ -142,6 +142,12 @@ def build_app(
         Dict of other server configuration.
     access_policy: AccessPolicy, optional
         AccessPolicy object encoding rules for which users can see which entries.
+    webhook_url_validator : callable, optional
+        An async callable ``(WebhookRegistrationRequest) -> None`` invoked when
+        a webhook is registered.  Raise ``HTTPException`` to reject the request.
+        Defaults to ``_default_url_validator`` (enforces HTTPS and blocks SSRF
+        targets).  Pass ``_noop_url_validator`` to allow plain HTTP and local
+        addresses, e.g. for ``SimpleTiledServer`` used in tests or tutorials.
     """
     authentication = authentication or Authentication()
     authenticators = authentication.authenticators
@@ -397,8 +403,8 @@ def build_app(
     webhooks_cfg = server_settings.get("webhooks")
     if webhooks_cfg is not None:
         kwargs = {}
-        if url_validator is not None:
-            kwargs["url_validator"] = url_validator
+        if webhook_url_validator is not None:
+            kwargs["webhook_url_validator"] = webhook_url_validator
         app.include_router(
             get_webhook_router(webhooks_cfg, **kwargs), prefix="/api/v1"
         )
