@@ -498,7 +498,8 @@ Instead of a Python client subscribing over WebSocket, a webhook delivers an
 HTTP `POST` to any external HTTPS endpoint whenever a catalog event fires.
 This is useful for triggering pipelines or sending notifications from systems
 that cannot maintain a persistent connection.
-See the [Webhooks user guide](../user-guide/webhooks) for details.
+See [Webhooks](webhooks.md) for a hands-on walkthrough, or the
+[Webhooks user guide](../user-guide/webhooks) for the operator reference.
 ```
 
 ## Register data
