@@ -15,7 +15,7 @@ Both scopes are granted to admin users only.
 
 import asyncio
 import logging
-from typing import Optional
+from typing import Callable, Coroutine, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Security
 from sqlalchemy import select
@@ -42,22 +42,16 @@ from .webhooks import _encrypt_secret, check_url_ssrf_safety
 
 logger = logging.getLogger(__name__)
 
+# Type alias for a URL validator: accepts a WebhookRegistrationRequest,
+# raises HTTPException on failure, returns None on success.
+UrlValidator = Callable[[WebhookRegistrationRequest], Coroutine]
 
-async def _validate_webhook_url(
-    body: WebhookRegistrationRequest, *, dev_mode: bool
-) -> None:
-    """Validate the webhook URL, raising HTTPException on failure.
 
-    In dev_mode both the HTTPS requirement and the SSRF blocklist are
-    skipped — this should never be enabled in production.
+async def _default_url_validator(body: WebhookRegistrationRequest) -> None:
+    """Validate the webhook URL for production use.
+
+    Enforces HTTPS and checks the target against the SSRF blocklist.
     """
-    if dev_mode:
-        logger.warning(
-            "Webhook dev_mode is enabled for %s — HTTPS is not required and SSRF "
-            "checks are disabled. DO NOT USE IN PRODUCTION.",
-            body.url,
-        )
-        return
     try:
         body.check_https()
     except ValueError as exc:
@@ -70,6 +64,15 @@ async def _validate_webhook_url(
             status_code=400,
             detail="Webhook URL targets a private or reserved address and cannot be registered.",
         ) from exc
+
+
+async def _noop_url_validator(body: WebhookRegistrationRequest) -> None:
+    """No-op URL validator for development use (e.g. SimpleTiledServer).
+
+    Skips HTTPS enforcement and SSRF checks so that local HTTP endpoints
+    (such as http://localhost:9000) can be used as webhook targets.
+    """
+    pass
 
 
 def _get_catalog_context(entry):
@@ -101,7 +104,10 @@ async def _node_path_from_id(ctx, node_id: int) -> str:
     return "/".join(keys)
 
 
-def get_webhook_router(webhook_settings: WebhooksConfig) -> APIRouter:
+def get_webhook_router(
+    webhook_settings: WebhooksConfig,
+    url_validator: UrlValidator = _default_url_validator,
+) -> APIRouter:
     router = APIRouter(prefix="/webhooks")
 
     @router.post(
@@ -134,7 +140,7 @@ def get_webhook_router(webhook_settings: WebhooksConfig) -> APIRouter:
         )
         ctx = _get_catalog_context(entry)
 
-        await _validate_webhook_url(body, dev_mode=webhook_settings.dev_mode)
+        await url_validator(body)
 
         encrypted_secret: Optional[str] = None
         if body.secret:
