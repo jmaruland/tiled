@@ -15,7 +15,7 @@ import httpx
 import pytest
 import respx
 import stamina
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from httpx import Response
 from sqlalchemy import select as sa_select
 
@@ -34,6 +34,7 @@ from tiled.server.schemas import (
     WebhookRegistrationRequest,
     WebhookResponse,
 )
+from tiled.server.webhook_router import _build_url_validator, _noop_url_validator
 from tiled.server.webhooks import (
     MAX_ATTEMPTS,
     WebhookDispatcher,
@@ -985,18 +986,54 @@ def test_noop_url_validator_accepts_http_and_private_ip() -> None:
     it injects bypasses both the HTTPS requirement and the SSRF blocklist so
     that local receivers (e.g. http://localhost:9000) work during development.
     """
-    import asyncio
-
-    # Use model_construct to bypass the HTTPS field_validator on the model.
-    from pydantic import AnyHttpUrl
-
-    from tiled.server.schemas import WebhookRegistrationRequest
-    from tiled.server.webhook_router import _noop_url_validator
-
-    req = WebhookRegistrationRequest.model_construct(
-        url=AnyHttpUrl("http://127.0.0.1:9000/hook"),
-        secret=None,
-        events=None,
-    )
-    # Must complete without raising.
+    req = WebhookRegistrationRequest(url="http://127.0.0.1:9000/hook")
     asyncio.run(_noop_url_validator(req))
+
+
+# ---------------------------------------------------------------------------
+# Unit tests: _build_url_validator with allow_http / allow_private_addresses
+# ---------------------------------------------------------------------------
+
+
+class TestBuildUrlValidator:
+    """Tests for the config-driven URL validator factory."""
+
+    def test_allow_http_accepts_http_url(self) -> None:
+        """allow_http=True must accept plain HTTP URLs to public addresses."""
+        validator = _build_url_validator(WebhooksConfig(allow_http=True))
+        req = WebhookRegistrationRequest(url="http://example.com/hook")
+
+        def _fake(host, port, *args, **kwargs):
+            return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("93.184.216.34", 0))]
+
+        with patch("tiled.server.webhooks.socket.getaddrinfo", side_effect=_fake):
+            asyncio.run(validator(req))  # must not raise
+
+    def test_allow_http_still_blocks_private_ip(self) -> None:
+        """allow_http=True must still block private IPs when allow_private_addresses=False."""
+        validator = _build_url_validator(WebhooksConfig(allow_http=True))
+        req = WebhookRegistrationRequest(url="http://10.0.0.1/hook")
+        with pytest.raises(HTTPException) as exc_info:
+            asyncio.run(validator(req))
+        assert exc_info.value.status_code == 400
+
+    def test_allow_private_addresses_accepts_localhost(self) -> None:
+        """allow_private_addresses=True must accept private IPs (HTTPS still required)."""
+        validator = _build_url_validator(WebhooksConfig(allow_private_addresses=True))
+        req = WebhookRegistrationRequest(url="https://localhost/hook")
+        asyncio.run(validator(req))  # must not raise
+
+    def test_allow_private_addresses_still_requires_https(self) -> None:
+        """allow_private_addresses=True must still reject HTTP when allow_http=False."""
+        validator = _build_url_validator(WebhooksConfig(allow_private_addresses=True))
+        req = WebhookRegistrationRequest(url="http://localhost/hook")
+        with pytest.raises(HTTPException) as exc_info:
+            asyncio.run(validator(req))
+        assert exc_info.value.status_code == 422
+
+    def test_both_true_returns_noop(self) -> None:
+        """allow_http=True + allow_private_addresses=True returns the noop validator."""
+        validator = _build_url_validator(
+            WebhooksConfig(allow_http=True, allow_private_addresses=True)
+        )
+        assert validator is _noop_url_validator
