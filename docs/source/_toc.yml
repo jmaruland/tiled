@@ -18,6 +18,7 @@ subtrees:
                 - entries:
                   - file: getting-started/integrations/plotly
                   - file: getting-started/integrations/zarr
+            - file: getting-started/webhooks
   - entries:
     - file: user-guide/index
       subtrees:
