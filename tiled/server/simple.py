@@ -107,7 +107,7 @@ class SimpleTiledServer:
         from ..config import Authentication, StreamingCacheConfig, WebhooksConfig
         from .app import build_app
         from .logging_config import LOGGING_CONFIG
-        from .webhook_router import _noop_url_validator, get_webhook_router
+        from .webhook_router import _noop_url_validator
 
         if directory is None:
             directory = pathlib.Path(tempfile.mkdtemp())
@@ -154,17 +154,17 @@ class SimpleTiledServer:
             init_if_not_exists=True,
             readable_storage=readable_storage,
             cache_config=StreamingCacheConfig(uri="memory").model_dump(),
-            webhook_secret_keys=[webhook_secret_key] if webhook_secret_key else None,
         )
-        self.app = build_app(
-            self.catalog, authentication=Authentication(single_user_api_key=api_key)
-        )
+        server_settings = {}
         if enable_webhooks:
             webhook_cfg = WebhooksConfig(secret_keys=[webhook_secret_key])
-            self.app.include_router(
-                get_webhook_router(webhook_cfg, url_validator=_noop_url_validator),
-                prefix="/api/v1",
-            )
+            server_settings["webhooks"] = webhook_cfg
+        self.app = build_app(
+            self.catalog,
+            authentication=Authentication(single_user_api_key=api_key),
+            server_settings=server_settings,
+            url_validator=_noop_url_validator if enable_webhooks else None,
+        )
         self._server = ThreadedServer(
             uvicorn.Config(self.app, port=port, loop="asyncio", log_config=log_config)
         )

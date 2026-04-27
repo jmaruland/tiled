@@ -971,3 +971,32 @@ def test_history_nonexistent_webhook_returns_404(http: httpx.Client) -> None:
     """GET /history/{id} for a non-existent webhook must return 404."""
     resp = http.get("/api/v1/webhooks/history/999999")
     assert resp.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# Unit tests: _noop_url_validator
+# ---------------------------------------------------------------------------
+
+
+def test_noop_url_validator_accepts_http_and_private_ip() -> None:
+    """_noop_url_validator must not raise for HTTP URLs or private IP targets.
+
+    This confirms the contract relied upon by SimpleTiledServer: the validator
+    it injects bypasses both the HTTPS requirement and the SSRF blocklist so
+    that local receivers (e.g. http://localhost:9000) work during development.
+    """
+    import asyncio
+
+    from tiled.server.webhook_router import _noop_url_validator
+    from tiled.server.schemas import WebhookRegistrationRequest
+
+    # Use model_construct to bypass the HTTPS field_validator on the model.
+    from pydantic import AnyHttpUrl
+
+    req = WebhookRegistrationRequest.model_construct(
+        url=AnyHttpUrl("http://127.0.0.1:9000/hook"),
+        secret=None,
+        events=None,
+    )
+    # Must complete without raising.
+    asyncio.run(_noop_url_validator(req))
