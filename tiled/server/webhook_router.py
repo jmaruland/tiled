@@ -47,25 +47,6 @@ logger = logging.getLogger(__name__)
 UrlValidator = Callable[[WebhookRegistrationRequest], Coroutine]
 
 
-async def _default_url_validator(body: WebhookRegistrationRequest) -> None:
-    """Validate the webhook URL for production use.
-
-    Enforces HTTPS and checks the target against the SSRF blocklist.
-    """
-    try:
-        body.check_https()
-    except ValueError as exc:
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
-    try:
-        await asyncio.to_thread(check_url_ssrf_safety, str(body.url))
-    except ValueError as exc:
-        logger.info("Webhook registration blocked by SSRF check: %s", exc)
-        raise HTTPException(
-            status_code=400,
-            detail="Webhook URL targets a private or reserved address and cannot be registered.",
-        ) from exc
-
-
 async def _noop_url_validator(body: WebhookRegistrationRequest) -> None:
     """No-op URL validator for development use (e.g. SimpleTiledServer).
 
@@ -73,6 +54,52 @@ async def _noop_url_validator(body: WebhookRegistrationRequest) -> None:
     (such as http://localhost:9000) can be used as webhook targets.
     """
     pass
+
+
+def _build_url_validator(config: WebhooksConfig) -> UrlValidator:
+    """Build a URL validator from the webhooks configuration.
+
+    Returns a validator that conditionally enforces HTTPS and SSRF checks
+    based on the ``allow_http`` and ``allow_private_addresses`` settings.
+    With the default config (both ``False``), this is the production
+    validator that enforces HTTPS and blocks SSRF targets.
+    """
+    if config.allow_http and config.allow_private_addresses:
+        logger.warning(
+            "Webhook URL validation is fully relaxed: "
+            "allow_http and allow_private_addresses are both enabled."
+        )
+        return _noop_url_validator
+
+    if config.allow_http:
+        logger.warning("Webhook HTTPS enforcement is disabled (allow_http=True).")
+    if config.allow_private_addresses:
+        logger.warning(
+            "Webhook SSRF protection is disabled (allow_private_addresses=True)."
+        )
+
+    async def _url_validator(
+        body: WebhookRegistrationRequest,
+    ) -> None:
+        if not config.allow_http:
+            try:
+                body.check_https()
+            except ValueError as exc:
+                raise HTTPException(status_code=422, detail=str(exc)) from exc
+        if not config.allow_private_addresses:
+            try:
+                await asyncio.to_thread(check_url_ssrf_safety, str(body.url))
+            except ValueError as exc:
+                logger.info("Webhook registration blocked by SSRF check: %s", exc)
+                raise HTTPException(
+                    status_code=400,
+                    detail=(
+                        "Webhook URL targets a private or reserved address "
+                        "and cannot be registered."
+                    ),
+                ) from exc
+
+    return _url_validator
 
 
 def _get_catalog_context(entry):
@@ -106,8 +133,11 @@ async def _node_path_from_id(ctx, node_id: int) -> str:
 
 def get_webhook_router(
     webhook_settings: WebhooksConfig,
-    webhook_url_validator: UrlValidator = _default_url_validator,
+    webhook_url_validator: UrlValidator | None = None,
 ) -> APIRouter:
+    if webhook_url_validator is None:
+        webhook_url_validator = _build_url_validator(webhook_settings)
+
     router = APIRouter(prefix="/webhooks")
 
     @router.post(

@@ -146,6 +146,16 @@
 #   # Supports key rotation: first key encrypts, all keys are tried to decrypt.
 #   secret_keys:
 #     - ${TILED_WEBHOOK_SECRET_KEY}
+#
+#   # Allow webhook URLs to use plain HTTP instead of HTTPS.
+#   # Default: false.  Enable for containerized / local development setups.
+#   # Env: TILED_WEBHOOKS_ALLOW_HTTP
+#   # allow_http: false
+#
+#   # Allow webhook URLs that target private, loopback, or reserved addresses.
+#   # Default: false.  Enable when webhook receivers run on the same network.
+#   # Env: TILED_WEBHOOKS_ALLOW_PRIVATE_ADDRESSES
+#   # allow_private_addresses: false
 
 
 # -----------------------------------------------------------------------------

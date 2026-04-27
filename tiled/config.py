@@ -250,9 +250,18 @@ class WebhooksConfig(BaseSettings):
     secret_keys : list of str
         Keys used to encrypt webhook HMAC signing secrets at rest.
         Required; generate one with ``openssl rand -hex 32``.
+    allow_http : bool
+        When ``True``, webhook URLs are allowed to use plain HTTP instead of
+        HTTPS.  Default ``False`` (HTTPS is required).
+    allow_private_addresses : bool
+        When ``True``, webhook URLs may target private, loopback, or reserved
+        IP addresses.  Default ``False`` (such addresses are blocked to
+        mitigate SSRF).
     """
 
     secret_keys: list[str] = []
+    allow_http: bool = False
+    allow_private_addresses: bool = False
 
     model_config = SettingsConfigDict(env_prefix="TILED_WEBHOOKS_")
     settings_customise_sources = classmethod(settings_customise_sources)
