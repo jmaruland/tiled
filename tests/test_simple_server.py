@@ -123,9 +123,7 @@ def test_simple():
     SERVERS.pop().close()
 
 
-# ---------------------------------------------------------------------------
-# Webhook integration tests for SimpleTiledServer
-# ---------------------------------------------------------------------------
+# ----- Webhook integration tests for SimpleTiledServer
 
 
 def test_webhooks_disabled_by_default():
@@ -135,9 +133,9 @@ def test_webhooks_disabled_by_default():
             f"http://localhost:{server.port}/api/v1/webhooks/target/",
             headers={"Authorization": f"Apikey {server.api_key}"},
         )
-        assert resp.status_code == 404, (
-            "Webhook router should not be mounted when enable_webhooks=False"
-        )
+        assert (
+            resp.status_code == 404
+        ), "Webhook router should not be mounted when enable_webhooks=False"
         assert server.webhook_secret_key is None
 
 
@@ -158,7 +156,7 @@ def test_webhooks_enabled(tmp_path):
                 "Authorization": f"Apikey {server.api_key}",
                 "Content-Type": "application/json",
             },
-            content=json.dumps({"url": f"http://localhost:19999/hook"}),
+            content=json.dumps({"url": "http://localhost:19999/hook"}),
         )
         assert resp.status_code == 200, resp.text
         body = resp.json()
@@ -197,9 +195,7 @@ def test_webhooks_delivers_event(tmp_path):
                     "Authorization": f"Apikey {server.api_key}",
                     "Content-Type": "application/json",
                 },
-                content=json.dumps(
-                    {"url": f"http://127.0.0.1:{receiver_port}/hook"}
-                ),
+                content=json.dumps({"url": f"http://127.0.0.1:{receiver_port}/hook"}),
             )
             assert resp.status_code == 200, resp.text
 

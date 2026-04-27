@@ -405,9 +405,7 @@ def build_app(
         kwargs = {}
         if webhook_url_validator is not None:
             kwargs["webhook_url_validator"] = webhook_url_validator
-        app.include_router(
-            get_webhook_router(webhooks_cfg, **kwargs), prefix="/api/v1"
-        )
+        app.include_router(get_webhook_router(webhooks_cfg, **kwargs), prefix="/api/v1")
 
     app.include_router(get_zarr_router_v2(), prefix="/zarr/v2")
     app.include_router(get_zarr_router_v3(), prefix="/zarr/v3")

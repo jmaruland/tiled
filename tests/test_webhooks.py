@@ -987,11 +987,11 @@ def test_noop_url_validator_accepts_http_and_private_ip() -> None:
     """
     import asyncio
 
-    from tiled.server.webhook_router import _noop_url_validator
-    from tiled.server.schemas import WebhookRegistrationRequest
-
     # Use model_construct to bypass the HTTPS field_validator on the model.
     from pydantic import AnyHttpUrl
+
+    from tiled.server.schemas import WebhookRegistrationRequest
+    from tiled.server.webhook_router import _noop_url_validator
 
     req = WebhookRegistrationRequest.model_construct(
         url=AnyHttpUrl("http://127.0.0.1:9000/hook"),
