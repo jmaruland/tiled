@@ -53,7 +53,7 @@ def identity(filename):
 
 def default_filter(path):
     "By default, ignore only hidden files."
-    return not path.name.startswith(".")
+    return not (path.name.startswith(".") or path.suffix == ".png")
 
 
 def resolve_mimetype(path, mimetypes_by_file_ext, mimetype_detection_hook=None):
