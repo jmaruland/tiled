@@ -1,6 +1,6 @@
 import asyncio
 import re
-from typing import List
+from typing import List, Optional
 
 import typer
 
@@ -70,9 +70,9 @@ def register(
             "Specify here as 'package.module:function'"
         ),
     ),
-    include-ext: Optional[List[str]] = typer.Option(
+    include_ext: Optional[List[str]] = typer.Option(
         None,
-        "--include",
+        "--include-ext",
         help="Include only given file extensions",
     ),
     api_key: str = typer.Option(
@@ -81,6 +81,7 @@ def register(
     ),
 ):
     from ..client.register import default_filter
+
     if include_ext is not None:
 
         def filter(path):
