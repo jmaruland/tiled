@@ -34,6 +34,15 @@ def register(
             "may break user (client-side) code."
         ),
     ),
+    include_ext: Optional[List[str]] = typer.Option(
+        None,
+        "--include-ext",
+        help=(
+            "Include only given file extensions, e.g., "
+            "--include-ext .csv --include-ext .tiff "
+            "Include the leading '.' in the file extension.",
+        ),
+    ),
     ext: List[str] = typer.Option(
         None,
         "--ext",
@@ -69,11 +78,6 @@ def register(
             "on groups of files. "
             "Specify here as 'package.module:function'"
         ),
-    ),
-    include_ext: Optional[List[str]] = typer.Option(
-        None,
-        "--include-ext",
-        help="Include only given file extensions",
     ),
     api_key: str = typer.Option(
         None,
