@@ -40,7 +40,7 @@ def register(
         help=(
             "Include only given file extensions, e.g., "
             "--include-ext .csv --include-ext .tiff "
-            "Include the leading '.' in the file extension.",
+            "Include the leading '.' in the file extension."
         ),
     ),
     ext: List[str] = typer.Option(
